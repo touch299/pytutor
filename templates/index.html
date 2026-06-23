@@ -2,243 +2,182 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>🐍 PyTutor V5.2 · 稳健执行追踪</title>
+    <title>🐍 PyTutor 个人版 · 执行可视化</title>
     <style>
         :root {
             --bg: #0f0f1a; --surface: #1a1a2e; --text: #d4d4e0;
             --accent: #6c8cff; --green: #4caf93; --red: #e06c75;
             --border: #2e2e4a; --highlight: #ffd700;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: system-ui, sans-serif;
             background: var(--bg); color: var(--text);
-            display: flex; height: 100vh; overflow: hidden;
+            display: flex; height: 100vh;
         }
-        .pane {
-            flex: 1; display: flex; flex-direction: column;
-            padding: 1.5rem; overflow: auto;
-        }
-        .left { border-right: 1px solid var(--border); max-width: 45%; }
+        .pane { flex:1; padding:1.5rem; overflow:auto; }
+        .left { border-right:1px solid var(--border); max-width:45%; }
         .card {
-            background: var(--surface); border-radius: 16px;
-            padding: 1.5rem; margin-bottom: 1rem;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            background: var(--surface); border-radius:16px;
+            padding:1.5rem; margin-bottom:1rem;
+            border:1px solid var(--border);
+            box-shadow:0 4px 20px rgba(0,0,0,0.3);
         }
-        h3 { color: var(--accent); margin-bottom: 1rem; }
+        h3 { color:var(--accent); margin-bottom:0.8rem; }
         textarea {
-            width: 100%; height: 220px; background: #050510;
-            color: #cfcfef; border: 1px solid var(--border);
-            border-radius: 10px; padding: 1rem;
-            font-family: 'Fira Code', monospace; resize: vertical;
+            width:100%; height:200px; background:#050510;
+            color:#cfcfef; border:1px solid var(--border);
+            border-radius:10px; padding:1rem;
+            font-family:monospace; resize:vertical;
         }
         .btn {
-            background: var(--accent); color: white; border: none;
-            padding: 0.6rem 1.5rem; border-radius: 8px;
-            font-weight: 600; cursor: pointer; margin: 0.5rem 0;
-            transition: filter 0.2s;
+            background:var(--accent); color:white; border:none;
+            padding:0.6rem 1.5rem; border-radius:8px;
+            font-weight:600; cursor:pointer; margin:0.5rem 0;
         }
-        .btn:hover { filter: brightness(1.1); }
+        .btn:hover { filter:brightness(1.1); }
         .output-box {
-            background: #050510; border: 1px solid var(--border);
-            border-radius: 10px; padding: 1rem; margin-top: 1rem;
-            min-height: 60px; white-space: pre-wrap; font-family: monospace;
+            background:#050510; border:1px solid var(--border);
+            border-radius:10px; padding:1rem; min-height:60px;
+            white-space:pre-wrap; font-family:monospace;
         }
-        .error { color: var(--red); margin-top: 0.5rem; }
-
-        /* 时间线 */
-        .timeline {
-            display: flex; flex-direction: column; gap: 0.6rem;
-        }
+        .error { color:var(--red); margin-top:0.5rem; }
+        .timeline { display:flex; flex-direction:column; gap:0.5rem; }
         .trace-card {
-            background: #2e2e44; border-radius: 8px;
-            padding: 0.5rem 1rem; display: flex; align-items: center;
-            gap: 1rem; cursor: pointer; transition: 0.2s;
-            border-left: 4px solid var(--accent);
+            background:#2e2e44; border-radius:8px;
+            padding:0.5rem 1rem; display:flex; align-items:center;
+            gap:1rem; cursor:pointer; border-left:4px solid var(--accent);
         }
-        .trace-card.active {
-            border-left-color: var(--highlight);
-            background: #3a3a5a;
-        }
-        .step-num {
-            font-weight: bold; color: var(--accent);
-            min-width: 50px;
-        }
-        .trace-vars {
-            display: flex; gap: 1rem; flex-wrap: wrap;
-        }
-        .var-badge {
-            background: #1a1a2e; padding: 0.2rem 0.7rem;
-            border-radius: 20px; font-size: 0.9rem;
-        }
-        .line-badge {
-            margin-left: auto;
-            color: var(--highlight);  /* 修复：使用 --highlight */
-            font-size: 0.8rem;
-        }
-
-        /* 代码显示 */
+        .trace-card.active { border-left-color:var(--highlight); background:#3a3a5a; }
+        .step-num { font-weight:bold; color:var(--accent); min-width:50px; }
+        .trace-vars { display:flex; gap:0.8rem; flex-wrap:wrap; }
+        .var-badge { background:#1a1a2e; padding:0.2rem 0.7rem; border-radius:20px; }
+        .line-badge { margin-left:auto; color:var(--highlight); font-size:0.8rem; }
         .code-display {
-            background: #050510; border: 1px solid var(--border);
-            border-radius: 10px; padding: 0.8rem; margin-top: 1rem;
-            font-family: 'Fira Code', monospace; white-space: pre;
-            overflow-x: auto; font-size: 0.9rem; color: #cfcfef;
-            counter-reset: line;
+            background:#050510; border:1px solid var(--border);
+            border-radius:10px; padding:0.8rem; margin-top:1rem;
+            font-family:monospace; white-space:pre; counter-reset:line;
         }
         .code-display span {
-            display: block; counter-increment: line;
-            padding: 0 0.5rem; border-left: 3px solid transparent;
+            display:block; counter-increment:line;
+            padding:0 0.5rem; border-left:3px solid transparent;
         }
         .code-display span::before {
-            content: counter(line);
-            display: inline-block;
-            width: 2.5em; text-align: right;
-            margin-right: 1em; color: #666;
+            content:counter(line); display:inline-block;
+            width:2.5em; text-align:right; margin-right:1em; color:#666;
         }
-        .code-display span.highlight {
-            background: rgba(108, 140, 255, 0.15);
-            border-left-color: var(--accent);
-        }
+        .code-display span.highlight { background:rgba(108,140,255,0.15); border-left-color:var(--accent); }
     </style>
 </head>
 <body>
-    <div class="pane left">
-        <div class="card">
-            <h3>💻 代码编辑</h3>
-            <textarea id="codeInput">sum = 0
+<div class="pane left">
+    <div class="card">
+        <h3>💻 代码编辑</h3>
+        <textarea id="codeInput">sum = 0
 for i in range(3):
     sum += i
 print(sum)</textarea>
-            <button class="btn" id="runBtn">▶️ 运行并追踪</button>
-        </div>
-        <div class="card">
-            <h3>📤 输出</h3>
-            <div class="output-box" id="outputDisplay"></div>
-            <div class="error" id="errorDisplay"></div>
-        </div>
-        <div class="card">
-            <h3>📄 代码行对照</h3>
-            <div class="code-display" id="codeDisplay"></div>
-        </div>
+        <button class="btn" id="runBtn">▶️ 运行并追踪</button>
     </div>
-
-    <div class="pane right">
-        <div class="card" style="height: 100%;">
-            <h3>⏱️ 执行轨迹</h3>
-            <div class="timeline" id="timelineContainer">
-                <p>点击运行，点击步骤可高亮代码行。</p>
-            </div>
-        </div>
+    <div class="card">
+        <h3>📤 输出</h3>
+        <div class="output-box" id="outputDisplay"></div>
+        <div class="error" id="errorDisplay"></div>
     </div>
+    <div class="card">
+        <h3>📄 代码行对照</h3>
+        <div class="code-display" id="codeDisplay"></div>
+    </div>
+</div>
+<div class="pane right">
+    <div class="card" style="height:100%;">
+        <h3>⏱️ 执行轨迹</h3>
+        <div class="timeline" id="timelineContainer"></div>
+    </div>
+</div>
 
-    <script>
-        const codeInput = document.getElementById('codeInput');
-        const runBtn = document.getElementById('runBtn');
-        const outputDisplay = document.getElementById('outputDisplay');
-        const errorDisplay = document.getElementById('errorDisplay');
-        const timelineContainer = document.getElementById('timelineContainer');
-        const codeDisplay = document.getElementById('codeDisplay');
+<script>
+    const codeInput = document.getElementById('codeInput');
+    const runBtn = document.getElementById('runBtn');
+    const outputDisp = document.getElementById('outputDisplay');
+    const errorDisp = document.getElementById('errorDisplay');
+    const timeline = document.getElementById('timelineContainer');
+    const codeDisp = document.getElementById('codeDisplay');
 
-        function renderCodeDisplay(code) {
-            const lines = code.split('\n');
-            codeDisplay.innerHTML = lines.map(line => `<span>${line}</span>`).join('');
-        }
+    function renderCodeDisplay(code) {
+        codeDisp.innerHTML = code.split('\n').map(line => `<span>${line}</span>`).join('');
+    }
 
-        function clearAllHighlights() {
-            // 清除代码行高亮
-            document.querySelectorAll('.code-display span').forEach(el => el.classList.remove('highlight'));
-            // 清除时间线高亮
-            document.querySelectorAll('.trace-card').forEach(el => el.classList.remove('active'));
-        }
+    function clearHighlights() {
+        document.querySelectorAll('.code-display span').forEach(el => el.classList.remove('highlight'));
+        document.querySelectorAll('.trace-card').forEach(el => el.classList.remove('active'));
+    }
 
-        function highlightLine(lineNo, traceCardElem = null) {
-            clearAllHighlights();
-            // 高亮代码行
-            if (lineNo) {
-                const lines = document.querySelectorAll('.code-display span');
-                if (lineNo >= 1 && lineNo <= lines.length) {
-                    lines[lineNo - 1].classList.add('highlight');
-                    lines[lineNo - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-            // 高亮对应的时间线卡片
-            if (traceCardElem) {
-                traceCardElem.classList.add('active');
+    function highlightLine(lineNo, cardElem = null) {
+        clearHighlights();
+        if (lineNo) {
+            const lines = document.querySelectorAll('.code-display span');
+            if (lineNo >= 1 && lineNo <= lines.length) {
+                lines[lineNo-1].classList.add('highlight');
+                lines[lineNo-1].scrollIntoView({behavior:'smooth',block:'center'});
             }
         }
+        if (cardElem) cardElem.classList.add('active');
+    }
 
-        runBtn.addEventListener('click', async () => {
-            const code = codeInput.value;
-            outputDisplay.textContent = '';
-            errorDisplay.textContent = '';
-            timelineContainer.innerHTML = '';
-            clearAllHighlights();
-            renderCodeDisplay(code);
+    runBtn.addEventListener('click', async () => {
+        const code = codeInput.value;
+        outputDisp.textContent = '';
+        errorDisp.textContent = '';
+        timeline.innerHTML = '';
+        clearHighlights();
+        renderCodeDisplay(code);
 
-            try {
-                const response = await fetch('/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code })
+        try {
+            const resp = await fetch('/run', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({code})
+            });
+            const data = await resp.json();
+
+            outputDisp.textContent = data.output || '(无输出)';
+            if (data.error) errorDisp.textContent = '❌ ' + data.error;
+
+            if (data.trace && data.trace.length) {
+                timeline.innerHTML = data.trace.map((step, idx) => {
+                    let varsHtml = step.vars.map(v =>
+                        `<span class="var-badge">${v.name} = ${v.value}</span>`
+                    ).join('');
+                    if (!varsHtml) varsHtml = `<span class="var-badge">${step.event}</span>`;
+                    return `<div class="trace-card" data-line="${step.line || ''}">
+                        <span class="step-num">Step ${idx+1}</span>
+                        <div class="trace-vars">${varsHtml}</div>
+                        <span class="line-badge">行 ${step.line || '?'} ${step.extra ? '('+step.extra+')' : ''}</span>
+                    </div>`;
+                }).join('');
+
+                document.querySelectorAll('.trace-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const line = parseInt(this.dataset.line);
+                        highlightLine(line, this);
+                    });
                 });
-                const data = await response.json();
 
-                if (data.output) {
-                    outputDisplay.textContent = data.output;
-                } else {
-                    outputDisplay.textContent = '(无输出)';
+                const firstLine = data.trace.find(s => s.line);
+                if (firstLine) {
+                    const firstCard = document.querySelector(`.trace-card[data-line="${firstLine.line}"]`);
+                    highlightLine(firstLine.line, firstCard);
                 }
-
-                if (data.error) {
-                    errorDisplay.textContent = '❌ 错误: ' + data.error;
-                }
-
-                if (data.trace && data.trace.length > 0) {
-                    let html = '';
-                    data.trace.forEach((step, idx) => {
-                        let varsHtml = '';
-                        if (step.vars && Object.keys(step.vars).length > 0) {
-                            for (const [k, v] of Object.entries(step.vars)) {
-                                varsHtml += `<span class="var-badge">${k} = ${v}</span>`;
-                            }
-                        } else {
-                            varsHtml += `<span class="var-badge">${step.event}</span>`;
-                        }
-
-                        html += `
-                            <div class="trace-card" data-line="${step.line || ''}" data-event="${step.event}" data-extra="${step.extra || ''}">
-                                <span class="step-num">Step ${idx + 1}</span>
-                                <div class="trace-vars">${varsHtml}</div>
-                                <span class="line-badge">行 ${step.line || '?'} ${step.extra ? '(' + step.extra + ')' : ''}</span>
-                            </div>`;
-                    });
-                    timelineContainer.innerHTML = html;
-
-                    // 为每个 trace-card 绑定点击事件，同时高亮卡片和代码行
-                    document.querySelectorAll('.trace-card').forEach(card => {
-                        card.addEventListener('click', function() {
-                            const line = parseInt(this.dataset.line);
-                            highlightLine(line, this);
-                        });
-                    });
-
-                    // 默认高亮第一个有行号的步骤
-                    const firstWithLine = data.trace.find(s => s.line);
-                    if (firstWithLine) {
-                        const firstCard = document.querySelector(`.trace-card[data-line="${firstWithLine.line}"]`);
-                        highlightLine(firstWithLine.line, firstCard);
-                    }
-                } else {
-                    timelineContainer.innerHTML = '<p>无执行步骤记录</p>';
-                }
-            } catch (err) {
-                errorDisplay.textContent = '网络错误: ' + err.message;
+            } else {
+                timeline.innerHTML = '<p>无执行轨迹</p>';
             }
-        });
+        } catch (e) {
+            errorDisp.textContent = '网络错误: ' + e.message;
+        }
+    });
 
-        // 初始化代码显示
-        renderCodeDisplay(codeInput.value);
-    </script>
+    renderCodeDisplay(codeInput.value);
+</script>
 </body>
 </html>
